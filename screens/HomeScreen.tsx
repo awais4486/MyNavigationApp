@@ -15,50 +15,47 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
   const [searchText, setsearchText] = useState('');
 
-  const [products, setProducts] = useState(['ALL']);
+  const [products, setProducts] = useState<any[]>([]);
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // const fetchProducts = async () => {
-  //   try {
-  //     const response = await fetch('http://localhost:1337/api/products');
-  //     const data = await response.json();
-
-  //     setProducts(data.products);
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // };
-
-
-
   const fetchProducts = async () => {
-  try {
-    console.log("fetchProducts() started");
+    try {
+      console.log("fetchProducts() started");
 
-    const response = await fetch(
-      "http://localhost:1337/api/products?populate=*"
-    );
+      const response = await fetch(
+        'http://localhost:1337/api/products?populate=category&pagination[page]=1&pagination[pageSize]=200'
+      );
 
-    console.log("Response received");
+      const data = await response.json();
 
-    const data = await response.json();
+      Alert.alert("PRODUCT DATA:", JSON.stringify(data, null, 2));
 
-    console.log(data);
+      // Alert.alert(data);
 
-    setProducts(data.data);
-  } catch (error) {
-    console.log("ERROR:", error);
-  }
-};
+      setProducts(data.data);
+    } catch (error) {
+      console.log("ERROR:", error);
+    }
+  };
 
-  const filteredproducts =
-    selectedCat === 'ALL' ? products :
-      products.filter(
-        (item) => item.category.toLowerCase() === selectedCat.toLowerCase()
-      )
+  const filteredProducts = products.filter((item) => {
+
+    const matchesCategory =
+      selectedCat === 'ALL' ||
+      item.category?.name?.toLowerCase() ===
+      selectedCat.toLowerCase();
+
+    const search = searchText.toLowerCase();
+
+    const matchesSearch =
+      item.title?.toLowerCase().includes(search) ||
+      item.description?.toLowerCase().includes(search);
+
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     // <ScrollView style={{ flex: 1, backgroundColor: '#e9f4f6', }}>
@@ -117,7 +114,9 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
             justifyContent: 'flex-start',
           }}
         >
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => filteredProducts.filter((item: any) => (typeof item === 'string' ? item.toLowerCase().includes(searchText.toLowerCase()) : item.title?.toLowerCase().includes(searchText.toLowerCase())))}
+          >
             <Ionicons name="person-outline" size={25} color={'#80d3d7'} />
           </TouchableOpacity>
         </View>
@@ -186,7 +185,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
         }}
       >
         <FlatList
-          data={filteredproducts}
+          data={filteredProducts}
           numColumns={2}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
@@ -230,7 +229,6 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
         />
       </View>
     </View>
-    // </ScrollView>
   );
 };
 
@@ -294,7 +292,3 @@ const styles = StyleSheet.create({
 });
 
 export default FlexDirectionBasics;
-{/* <Button
-        title="Go to Profile"
-        onPress={() => navigation.navigate('Profile')}
-      /> */}

@@ -9,7 +9,7 @@ import { ScrollView, FlatList, Pressable, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
-const DetailScreen = ({ route }) => {
+const DetailScreen = ({ route }: {route: any}) => {
 
   const { products } = route.params;
   const [ SelectedImage , setSelectedImage ] = useState(products.thumbnail) ;
@@ -59,7 +59,7 @@ const DetailScreen = ({ route }) => {
         </Text>
 
         <Text style={styles.info}>
-          Category : {products.category}
+          Category : {products.category?.name}
         </Text>
 
         <Text style={styles.price}>
