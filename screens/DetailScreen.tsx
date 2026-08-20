@@ -1,25 +1,163 @@
 import React from 'react';
 import { View, Text, Button, TouchableOpacity } from 'react-native';
 import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from 'react-native';
-
-// const HomeScreen = ({ navigation }: { navigation: any }) => {
-
 import { useState, useEffect, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DetailScreen = ({ route }: {route: any}) => {
+import Clipboard from '@react-native-clipboard/clipboard';
+import { getAuthenticatedUser } from '../services/authService';
+
+import { Heart } from 'lucide-react-native';
+
+const DetailScreen = ({ route }: { route: any }) => {
 
   const { products } = route.params;
-  const [ SelectedImage , setSelectedImage ] = useState(products.thumbnail) ;
+  const [favouriteLoading, setFavouriteLoading] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [SelectedImage, setSelectedImage] = useState(products.thumbnail);
+
+  useEffect(() => {
+    checkFavourite();
+  }, []);
+
+  const copyToken = async () => {
+    const token = await AsyncStorage.getItem('token');
+
+    if (!token) {
+      Alert.alert('Error', 'No token found.');
+      return;
+    }
+
+    Clipboard.setString(token);
+
+    Alert.alert(
+      'Token Copied',
+      'The JWT token has been copied to your clipboard.'
+    );
+  };
+
+  const checkFavourite = async () => {
+    try {
+      const result = await getAuthenticatedUser();
+
+      if (!result) {
+        return;
+      }
+
+      const favourites = result.user.favourites || [];
+
+      const alreadyFavourite = favourites.some(
+        (item: any) =>
+          (item.id !== undefined && item.id === products.id) ||
+          (item.documentId !== undefined && item.documentId === products.documentId)
+      );
+
+      setIsFavourite(alreadyFavourite);
+
+    } catch (error) {
+      console.log('CHECK FAVOURITE ERROR:', error);
+    }
+
+  };
+
+  const toggleFavourite = async () => {
+    if (favouriteLoading) {
+      return;
+    }
+
+    try {
+      setFavouriteLoading(true);
+
+      const result = await getAuthenticatedUser();
+
+      if (!result) {
+        Alert.alert(
+          'Login Required',
+          'Please login to use favourites.'
+        );
+        return;
+      }
+
+      const { token, user } = result;
+
+      const userId = user.id;
+      const productId = products.id;
+
+      console.log('USER ID:', userId);
+      console.log('PRODUCT ID:', productId);
+
+      if (typeof productId !== 'number') {
+        Alert.alert(
+          'Error',
+          'Product numeric id is missing.'
+        );
+        return;
+      }
+
+      const relation = isFavourite
+        ? {
+          disconnect: [productId],
+        }
+        : {
+          connect: [productId],
+        };
+
+      const response = await fetch(
+        `http://localhost:1337/api/users/${userId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            favourites: relation,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      console.log('FAVOURITE RESPONSE:', data);
+
+      if (!response.ok) {
+        console.log('FAVOURITE ERROR:', data);
+
+        Alert.alert(
+          'Error',
+          data.error?.message || 'Could not update favourite.'
+        );
+
+        return;
+      }
+
+      setIsFavourite(previous => !previous);
+
+    } catch (error) {
+      console.log('TOGGLE FAVOURITE ERROR:', error);
+
+      Alert.alert(
+        'Error',
+        'Something went wrong while updating favourite.'
+      );
+    } finally {
+      setFavouriteLoading(false);
+    }
+  };
+
 
   return (
+
     <View
       style={{
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        // maxWidth : '97%' 
       }}>
       <ScrollView style={styles.container}>
 
@@ -35,13 +173,15 @@ const DetailScreen = ({ route }: {route: any}) => {
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity
+
               onPress={() => setSelectedImage(item)}
             >
 
-            <Image
-              source={{ uri: item }}
-              style={styles.smallImage}
-            />
+              <Image
+                source={{ uri: item }}
+                style={styles.smallImage}
+              />
+
             </TouchableOpacity>
           )}
         />
@@ -49,10 +189,37 @@ const DetailScreen = ({ route }: {route: any}) => {
         <Text style={styles.rating}>
           Ratings : {products.rating}
         </Text>
-
-        <Text style={styles.title}>
-          {products.title}
-        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            maxWidth: '99%',
+            
+          }}
+        >
+          <View>
+            <Text style={styles.title}>
+              {products.title}
+            </Text>
+          </View>
+          <View
+            style={{
+              alignItems : 'baseline'
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                void toggleFavourite();
+              }}
+              disabled={favouriteLoading}
+            >
+              <Heart
+                size={30}
+                color={isFavourite ? 'red' : 'gray'}
+                fill={isFavourite ? 'red' : 'none'}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <Text style={styles.info}>
           Brand : {products.brand}
@@ -82,6 +249,20 @@ const DetailScreen = ({ route }: {route: any}) => {
           {products.description}
         </Text>
 
+        <TouchableOpacity
+          onPress={copyToken}
+          style={{
+            backgroundColor: '#333',
+            padding: 15,
+            borderRadius: 10,
+            marginTop: 20,
+          }}
+        >
+          <Text style={{ color: 'red', fontSize: 16 }}>
+            Copy Token
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.cartButton}>
           <Text style={styles.buttonText}>
             Add to Cart
@@ -95,8 +276,8 @@ const DetailScreen = ({ route }: {route: any}) => {
         </TouchableOpacity>
 
       </ScrollView>
-
     </View>
+
   );
 };
 
@@ -108,7 +289,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F7F8',
     padding: 16,
-    marginTop : '10%',
+    marginTop: '10%',
   },
 
   mainImage: {
@@ -133,9 +314,10 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 30,
+    fontSize: 25,
     fontWeight: 'bold',
     marginTop: 8,
+    maxWidth: '90%'
   },
 
   info: {
@@ -199,3 +381,5 @@ const styles = StyleSheet.create({
   },
 
 });
+
+

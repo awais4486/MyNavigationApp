@@ -192,11 +192,8 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
             </View>
             <View>
             </View>
-
         </View>
     );
-
-
 };
 
 

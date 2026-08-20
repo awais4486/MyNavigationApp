@@ -5,14 +5,8 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 import { useState, useEffect, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@react-native-vector-icons/ionicons';
 
-import asyncStorage from '@react-native-async-storage/async-storage';
-
-import RegisterScreen from './RegisterScreen';
 import { loginUser } from '../services/authService';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const loginscreen = ({ navigation }: { navigation: any }) => {
 
@@ -30,9 +24,6 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
             return;
         }
 
-        // else{
-        // navigation.navigate("Home");
-        // }
         try {
 
             const result = await loginUser(
@@ -40,17 +31,7 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
                 password
             );
 
-            Alert.alert(
-                "Success",
-                `Welcome ${result.user.username}`
-            );
-///////////////////////
-            const token = await AsyncStorage.getItem('token');
-
-            console.log(token);
-
-            Alert.alert("Saved Token", token ?? "No token");
-////////////////////////
+            Alert.alert("Success", `Welcome ${result.user.username}`);
             navigation.replace('Home');
 
         } catch (error: any) {

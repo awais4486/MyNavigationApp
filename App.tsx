@@ -8,12 +8,13 @@ import DetailScreen from './screens/DetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import FavouriteScreen from './screens/FavouriteScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import ionicons from 'react-native-vector-icons';
+import { House } from 'lucide-react-native';
+import { Heart } from 'lucide-react-native';
+import { Scissors } from 'lucide-react-native';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -23,7 +24,7 @@ function App() {
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerShown: false,
+          headerShown: false, 
           gestureEnabled: true,
         }}
       >
@@ -72,16 +73,26 @@ function bottomTabs() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={24} color={color} />
+            <House size={24} color={color} />
           )
         }}
       />
+
       <Tab.Screen
         name="ProfileScreen"
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bag" size={24} color={color} />
+            <Scissors size={24} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Favourite"
+        component={FavouriteScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Heart size={24} color={color} />
           )
         }}
       />

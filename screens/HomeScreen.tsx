@@ -7,7 +7,9 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 import { useState, useEffect, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@react-native-vector-icons/ionicons';
+
+// import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { Search } from 'lucide-react-native';
 
 const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
   const [flexDirection, setflexDirection] = useState('column');
@@ -31,13 +33,27 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
       const data = await response.json();
 
-      Alert.alert("PRODUCT DATA:", JSON.stringify(data, null, 2));
+      // Alert.alert("PRODUCT DATA:", JSON.stringify(data, null, 2));
 
       // Alert.alert(data);
 
       setProducts(data.data);
     } catch (error) {
       console.log("ERROR:", error);
+    }
+  };
+
+  const searchProducts = async (keyword: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:1337/api/products?filters[title][$containsi]=${encodeURIComponent(keyword)}&populate=category&pagination[pageSize]=200`
+      );
+
+      const data = await response.json();
+
+      setProducts(data.data);
+    } catch (error) {
+      console.log("SEARCH ERROR:", error);
     }
   };
 
@@ -117,11 +133,12 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
           <TouchableOpacity
             onPress={() => filteredProducts.filter((item: any) => (typeof item === 'string' ? item.toLowerCase().includes(searchText.toLowerCase()) : item.title?.toLowerCase().includes(searchText.toLowerCase())))}
           >
-            <Ionicons name="person-outline" size={25} color={'#80d3d7'} />
+            <Search size={25} color={'#80d3d7'} />
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={true}> //Product categories
+      {/* // Product categories */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={true}> 
         <View
           style={{
             flexDirection: 'row',
@@ -140,6 +157,17 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
             >
               ALL
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedCat('LAPTOPS')}
+          >
+            <Text
+              style={[styles.categories,
+              selectedCat === 'LAPTOPS' && styles.selectedCategory
+              ]}
+            >
+              LAPTOPS
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -235,7 +263,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
 const styles = StyleSheet.create({
   categories: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 12,
     // borderRadius: 10,
     // borderColor: '#1b1818',
     // borderWidth: 10,
@@ -287,7 +315,7 @@ const styles = StyleSheet.create({
 
   selectedCategory: {
     fontWeight: '600',
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
   },
 });
 

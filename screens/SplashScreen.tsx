@@ -5,7 +5,7 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 import { useState, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from '@react-native-vector-icons/ionicons';
+
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
