@@ -9,12 +9,13 @@ import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
+import CartScreen from './screens/CartScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { House } from 'lucide-react-native';
 import { Heart } from 'lucide-react-native';
 import { Scissors } from 'lucide-react-native';
+import { ShoppingCart } from 'lucide-react-native';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -72,7 +73,7 @@ function bottomTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <House size={24} color={color} />
           )
         }}
@@ -82,7 +83,7 @@ function bottomTabs() {
         name="ProfileScreen"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Scissors size={24} color={color} />
           )
         }}
@@ -91,8 +92,17 @@ function bottomTabs() {
         name="Favourite"
         component={FavouriteScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Heart size={24} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <ShoppingCart size={24} color={color} />
           )
         }}
       />

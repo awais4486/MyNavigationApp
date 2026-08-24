@@ -9,9 +9,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Clipboard from '@react-native-clipboard/clipboard';
-import { getAuthenticatedUser } from '../services/authService';
+import { getAuthenticatedCart, getAuthenticatedUser, updateCart } from '../services/authService';
 
-import { Heart } from 'lucide-react-native';
+import { Heart, Minus, Plus } from 'lucide-react-native';
 
 const DetailScreen = ({ route }: { route: any }) => {
 
@@ -19,6 +19,7 @@ const DetailScreen = ({ route }: { route: any }) => {
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
   const [SelectedImage, setSelectedImage] = useState(products.thumbnail);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     checkFavourite();
@@ -149,6 +150,32 @@ const DetailScreen = ({ route }: { route: any }) => {
     }
   };
 
+  const addToCart = async () => {
+    try {
+      if (typeof products.id !== 'number') {
+        Alert.alert('Error', 'Product numeric id is missing.');
+        return;
+      }
+
+      const result = await getAuthenticatedCart();
+
+      if (!result) {
+        Alert.alert('Login Required', 'Please login to use your cart.');
+        return;
+      }
+
+      const existingItem = result.cart.items.find((item: any) => {
+        const product = item.product?.data || item.product;
+        return product?.id === products.id;
+      });
+
+      await updateCart(products.id, existingItem ? existingItem.quantity + quantity : quantity, false);
+      Alert.alert('Added to cart', `${quantity} x ${products.title} was added to your cart.`);
+    } catch (error: any) {
+      Alert.alert('Cart error', error.message || 'Could not add this product to your cart.');
+    }
+  };
+
 
   return (
 
@@ -157,7 +184,6 @@ const DetailScreen = ({ route }: { route: any }) => {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        // maxWidth : '97%' 
       }}>
       <ScrollView style={styles.container}>
 
@@ -241,6 +267,27 @@ const DetailScreen = ({ route }: { route: any }) => {
           Stock : {products.stock}
         </Text>
 
+        <View style={styles.quantityRow}>
+          <Text style={styles.quantityLabel}>Quantity</Text>
+          <View style={styles.quantityControls}>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => setQuantity(current => Math.max(1, current - 1))}
+              accessibilityLabel="Decrease quantity"
+            >
+              <Minus size={20} color="#172126" />
+            </TouchableOpacity>
+            <Text style={styles.quantity}>{quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => setQuantity(current => Math.min(products.stock, current + 1))}
+              accessibilityLabel="Increase quantity"
+            >
+              <Plus size={20} color="#172126" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <Text style={styles.heading}>
           Description
         </Text>
@@ -249,21 +296,7 @@ const DetailScreen = ({ route }: { route: any }) => {
           {products.description}
         </Text>
 
-        <TouchableOpacity
-          onPress={copyToken}
-          style={{
-            backgroundColor: '#333',
-            padding: 15,
-            borderRadius: 10,
-            marginTop: 20,
-          }}
-        >
-          <Text style={{ color: 'red', fontSize: 16 }}>
-            Copy Token
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cartButton}>
+        <TouchableOpacity style={styles.cartButton} onPress={() => void addToCart()}>
           <Text style={styles.buttonText}>
             Add to Cart
           </Text>
@@ -342,6 +375,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#444',
     marginTop: 5,
+  },
+
+  quantityRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+
+  quantityLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+
+  quantityControls: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+
+  quantityButton: {
+    alignItems: 'center',
+    borderColor: '#ccd4d7',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+
+  quantity: {
+    fontSize: 18,
+    fontWeight: '700',
+    minWidth: 42,
+    textAlign: 'center',
   },
 
   heading: {
