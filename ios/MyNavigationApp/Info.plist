@@ -35,6 +35,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a profile picture from your photo library.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>We use notifications to keep you updated about login, cart changes, and order status.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

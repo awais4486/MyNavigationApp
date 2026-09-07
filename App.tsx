@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -16,13 +16,27 @@ import { House } from 'lucide-react-native';
 import { Heart } from 'lucide-react-native';
 import { Scissors } from 'lucide-react-native';
 import { ShoppingCart } from 'lucide-react-native';
+import { Provider } from 'react-redux';
+import store from './components/redux/store';
+import * as NotificationService from './services/notifications';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function App() {
+  useEffect(() => {
+    const initializeNotifications = async () => {
+      if (typeof NotificationService.setupNotifications === 'function') {
+        await NotificationService.setupNotifications();
+      }
+    };
+
+    void initializeNotifications();
+  }, []);
+
   return (
-    <NavigationContainer>
+    <Provider store={store}>
+      <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false, 
@@ -58,7 +72,8 @@ function App() {
           component={ProfileScreen}
         />
       </Stack.Navigator>
-    </NavigationContainer>
+      </NavigationContainer>
+    </Provider>
   );
 }
 

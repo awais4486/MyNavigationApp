@@ -7,6 +7,7 @@ import { ScrollView, FlatList, Pressable, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { loginUser } from '../services/authService';
+import { showNotification } from '../services/notifications';
 
 const loginscreen = ({ navigation }: { navigation: any }) => {
 
@@ -31,7 +32,7 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
                 password
             );
 
-            Alert.alert("Success", `Welcome ${result.user.username}`);
+            showNotification('Login successful', `Welcome ${result.user.username}!`);
             navigation.replace('Home');
 
         } catch (error: any) {

@@ -4,12 +4,51 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 
 // const HomeScreen = ({ navigation }: { navigation: any }) => {
 
-import { useState, useEffect, } from 'react';
-import { ScrollView, FlatList, Pressable, } from 'react-native';
+import { useRef, useState, useEffect } from 'react';
+import { ScrollView, FlatList, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { Search } from 'lucide-react-native';
+import { Scroll, Search, ShoppingCart } from 'lucide-react-native';
+import { addProductToCart } from '../services/authService';
+import { useDispatch } from 'react-redux';
+import { setCart } from '../components/redux/action';
+
+const STRAPI_URL = 'http://localhost:1337';
+
+const normalizeProduct = (product: any) => {
+  const normalizedProduct = product?.attributes
+    ? { ...product.attributes, id: product.id, documentId: product.documentId }
+    : product;
+
+  if (!normalizedProduct) {
+    return null;
+  }
+
+  return {
+    ...normalizedProduct,
+    category: normalizedProduct.category?.data?.attributes
+      || normalizedProduct.category?.data
+      || normalizedProduct.category,
+    image: normalizedProduct.image?.data?.attributes
+      || normalizedProduct.image?.data
+      || normalizedProduct.image,
+  };
+};
+
+const normalizeProducts = (data: any) => (
+  Array.isArray(data) ? data.map(normalizeProduct).filter(Boolean) : []
+);
+
+const getProductImageUrl = (product: any) => {
+  const imageUrl = product.image?.url || product.thumbnail;
+
+  if (!imageUrl) {
+    return undefined;
+  }
+
+  return imageUrl.startsWith('http') ? imageUrl : `${STRAPI_URL}${imageUrl}`;
+};
 
 const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
   const [flexDirection, setflexDirection] = useState('column');
@@ -17,18 +56,43 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
   const [searchText, setsearchText] = useState('');
 
+  const screenWidth = Dimensions.get("window").width;
+
   const [products, setProducts] = useState<any[]>([]);
+  const [topRatedProducts, setTopRatedProducts] = useState<any[]>([]);
+  const carouselRef = useRef<FlatList<any>>(null);
+  const carouselIndex = useRef(0);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     fetchProducts();
+    fetchTopRatedProducts();
   }, []);
+
+  useEffect(() => {
+    if (topRatedProducts.length < 2) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const nextIndex = (carouselIndex.current + 1) % topRatedProducts.length;
+      carouselIndex.current = nextIndex;
+
+      carouselRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [topRatedProducts.length]);
 
   const fetchProducts = async () => {
     try {
       console.log("fetchProducts() started");
 
       const response = await fetch(
-        'http://localhost:1337/api/products?populate=category&pagination[page]=1&pagination[pageSize]=200'
+        `${STRAPI_URL}/api/products?populate[0]=category&populate[1]=image&pagination[page]=1&pagination[pageSize]=200`
       );
 
       const data = await response.json();
@@ -37,27 +101,41 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
       // Alert.alert(data);
 
-      setProducts(data.data);
+      setProducts(normalizeProducts(data.data));
     } catch (error) {
       console.log("ERROR:", error);
+    }
+  };
+
+  const fetchTopRatedProducts = async () => {
+    try {
+      const response = await fetch(
+        `${STRAPI_URL}/api/products?sort=rating:desc&populate=image&pagination[pageSize]=5`
+      );
+
+      const data = await response.json();
+
+      setTopRatedProducts(normalizeProducts(data.data));
+    } catch (error) {
+      console.log("TOP RATED PRODUCTS ERROR:", error);
     }
   };
 
   const searchProducts = async (keyword: string) => {
     try {
       const response = await fetch(
-        `http://localhost:1337/api/products?filters[title][$containsi]=${encodeURIComponent(keyword)}&populate=category&pagination[pageSize]=200`
+        `${STRAPI_URL}/api/products?filters[title][$containsi]=${encodeURIComponent(keyword)}&populate[0]=category&populate[1]=image&pagination[pageSize]=200`
       );
 
       const data = await response.json();
 
-      setProducts(data.data);
+      setProducts(normalizeProducts(data.data));
     } catch (error) {
       console.log("SEARCH ERROR:", error);
     }
   };
 
-  const filteredProducts = products.filter((item) => {
+  const filteredProducts = (products || []).filter((item) => {
 
     const matchesCategory =
       selectedCat === 'ALL' ||
@@ -72,6 +150,22 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
     return matchesCategory && matchesSearch;
   });
+
+  const handleAddToCart = async (product: any) => {
+    try {
+      const updatedCart = await addProductToCart(product);
+
+      if (!updatedCart) {
+        Alert.alert('Login Required', 'Please login to use your cart.');
+        return;
+      }
+
+      dispatch(setCart(updatedCart.cart.items || []));
+      Alert.alert('Added to cart', `${product.title} was added to your cart.`);
+    } catch (error: any) {
+      Alert.alert('Cart error', error.message || 'Could not add this product to your cart.');
+    }
+  };
 
   return (
     // <ScrollView style={{ flex: 1, backgroundColor: '#e9f4f6', }}>
@@ -137,125 +231,169 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
           </TouchableOpacity>
         </View>
       </View>
-      {/* // Product categories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={true}> 
+      <ScrollView>
+        <View>
+          <FlatList
+            data={topRatedProducts}
+            ref={carouselRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ width: screenWidth }}
+                activeOpacity={0.85}
+                onPress={() =>
+                  navigation.navigate('DetailScreen', {
+                    products: item,
+                  })
+                }
+              >
+                <Image
+                  source={{
+                    uri: getProductImageUrl(item),
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 220,
+                    resizeMode: "cover",
+                  }}
+                />
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+        {/* // Product categories */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <View
+            style={{
+              flexDirection: 'row',
+              marginLeft: '1%',
+              marginTop: '5%',
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setSelectedCat('ALL')}
+            >
+              <Text
+                style={[
+                  styles.categories,
+                  selectedCat === 'ALL' && styles.selectedCategory
+                ]}
+
+              >
+                ALL
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedCat('LAPTOPS')}
+            >
+              <Text
+                style={[styles.categories,
+                selectedCat === 'LAPTOPS' && styles.selectedCategory
+                ]}
+              >
+                LAPTOPS
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedCat('BEAUTY')}
+            >
+              <Text
+                style={[styles.categories,
+                selectedCat === 'BEAUTY' && styles.selectedCategory
+                ]}
+              >
+                BEAUTY
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedCat('FRAGRANCES')}
+            >
+              <Text
+                style={[styles.categories,
+                selectedCat === 'FRAGRANCES' && styles.selectedCategory
+                ]}
+              >
+                FRAGRANCES
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setSelectedCat('FURNITURE')}
+            >
+              <Text
+                style={[styles.categories,
+                selectedCat === 'FURNITURES' && styles.selectedCategory
+                ]}
+              >
+                FURNITURES
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
         <View
           style={{
-            flexDirection: 'row',
-            marginLeft: '1%',
-            marginTop: '5%',
+            flex: 50,
+            // marginTop: '20%',
           }}
         >
-          <TouchableOpacity
-            onPress={() => setSelectedCat('ALL')}
-          >
-            <Text
-              style={[
-                styles.categories,
-                selectedCat === 'ALL' && styles.selectedCategory
-              ]}
+          <FlatList
+            data={filteredProducts}
+            numColumns={2}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{
+              paddingHorizontal: 10,
+              paddingBottom: 20,
+            }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() =>
+                  navigation.navigate('DetailScreen', {
+                    products: item,
+                  })
+                }
+              >
 
-            >
-              ALL
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSelectedCat('LAPTOPS')}
-          >
-            <Text
-              style={[styles.categories,
-              selectedCat === 'LAPTOPS' && styles.selectedCategory
-              ]}
-            >
-              LAPTOPS
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSelectedCat('BEAUTY')}
-          >
-            <Text
-              style={[styles.categories,
-              selectedCat === 'BEAUTY' && styles.selectedCategory
-              ]}
-            >
-              BEAUTY
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSelectedCat('FRAGRANCES')}
-          >
-            <Text
-              style={[styles.categories,
-              selectedCat === 'FRAGRANCES' && styles.selectedCategory
-              ]}
-            >
-              FRAGRANCES
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setSelectedCat('FURNITURE')}
-          >
-            <Text
-              style={[styles.categories,
-              selectedCat === 'FURNITURES' && styles.selectedCategory
-              ]}
-            >
-              FURNITURES
-            </Text>
-          </TouchableOpacity>
+                <Image
+                  source={{ uri: item.thumbnail }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.priceRow}>
+                  <Text style={styles.price}>${item.price}</Text>
+                  <TouchableOpacity
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      void handleAddToCart(item);
+                    }}
+                    accessibilityLabel={`Add ${item.title} to cart`}
+                    style={styles.cartButton}
+                  >
+                    <ShoppingCart size={24} color="#80d3d7" />
+                  </TouchableOpacity>
+                </View>
+                <Text
+                  style={styles.title}
+                  numberOfLines={2}
+                >
+                  {item.title}
+                </Text>
+
+                <Text
+                  style={styles.description}
+                  numberOfLines={3}
+                >
+                  {item.description}
+                </Text>
+
+              </TouchableOpacity>
+            )}
+          />
         </View>
       </ScrollView>
-
-      <View
-        style={{
-          flex: 50,
-          // marginTop: '20%',
-        }}
-      >
-        <FlatList
-          data={filteredProducts}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingHorizontal: 10,
-            paddingBottom: 20,
-          }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate('DetailScreen', {
-                  products: item,
-                })
-              }
-            >
-
-              <Image
-                source={{ uri: item.thumbnail }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
-              <Text style={styles.price}>
-                ${item.price}
-              </Text>
-              <Text
-                style={styles.title}
-                numberOfLines={2}
-              >
-                {item.title}
-              </Text>
-
-              <Text
-                style={styles.description}
-                numberOfLines={3}
-              >
-                {item.description}
-              </Text>
-
-            </TouchableOpacity>
-          )}
-        />
-      </View>
     </View>
   );
 };
@@ -291,6 +429,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 150,
     borderRadius: 10,
+  },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  cartButton: {
+    padding: 6,
   },
 
   price: {

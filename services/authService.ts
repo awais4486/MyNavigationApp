@@ -13,7 +13,7 @@ export const getAuthenticatedUser = async () => {
         return null;
     }
 
-    const response = await fetch(`${BASE_URL}/users/me?populate=favourites`, {
+    const response = await fetch(`${BASE_URL}/users/me?populate[0]=favourites&populate[1]=profilePicture`, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -74,7 +74,12 @@ export const getAuthenticatedCart = async () => {
     return { token, user, cart: { items: itemsData.data || [] } };
 };
 
-export const updateCart = async (productId: number, quantity: number, shouldRemove: boolean) => {
+export const updateCart = async (
+    productId: number,
+    quantity: number,
+    shouldRemove: boolean,
+    productDocumentId?: string
+) => {
     const result = await getAuthenticatedCart();
 
     if (!result) {
@@ -91,20 +96,25 @@ export const updateCart = async (productId: number, quantity: number, shouldRemo
             return null;
         }
 
-        const response = await fetch(`${BASE_URL}/cart-items/${existingItem.id}`, {
+        const response = await fetch(
+            `${BASE_URL}/cart-items/${existingItem.documentId || existingItem.id}`,
+            {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${result.token}` },
-        });
+            }
+        );
 
         if (!response.ok) {
             throw new Error('Could not remove this item from your cart.');
         }
 
-        return response.json();
+        return response.status === 204 ? null : response.json();
     }
 
     const response = await fetch(
-        existingItem ? `${BASE_URL}/cart-items/${existingItem.id}` : `${BASE_URL}/cart-items`,
+        existingItem
+            ? `${BASE_URL}/cart-items/${existingItem.documentId || existingItem.id}`
+            : `${BASE_URL}/cart-items`,
         { method: existingItem ? 'PUT' : 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -113,7 +123,9 @@ export const updateCart = async (productId: number, quantity: number, shouldRemo
         body: JSON.stringify({
             data: {
                 Users: result.user.id,
-                product: productId,
+                product: productDocumentId
+                    ? { connect: [productDocumentId] }
+                    : productId,
                 quantity,
             },
         }),
@@ -126,6 +138,54 @@ export const updateCart = async (productId: number, quantity: number, shouldRemo
     }
 
     return data;
+};
+
+export const addProductToCart = async (product: any, quantity = 1) => {
+    if (typeof product?.id !== 'number') {
+        throw new Error('Product numeric id is missing.');
+    }
+
+    const result = await getAuthenticatedCart();
+
+    if (!result) {
+        return null;
+    }
+
+    const existingItem = result.cart.items.find((item: any) => {
+        const cartProduct = item.product?.data || item.product;
+        return cartProduct?.id === product.id;
+    });
+
+    await updateCart(
+        product.id,
+        existingItem ? existingItem.quantity + quantity : quantity,
+        false,
+        product.documentId
+    );
+
+    return getAuthenticatedCart();
+};
+
+export const removeCartItem = async (cartItem: any) => {
+    const result = await getAuthenticatedCart();
+
+    if (!result) {
+        return null;
+    }
+
+    const response = await fetch(
+        `${BASE_URL}/cart-items/${cartItem.documentId || cartItem.id}`,
+        {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${result.token}` },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error('Could not remove this item from your cart.');
+    }
+
+    return response.status === 204 ? null : response.json();
 };
 
 export const registerUser = async (

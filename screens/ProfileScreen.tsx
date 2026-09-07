@@ -1,19 +1,178 @@
 import React from 'react';
-import { View, Text, Button, TouchableOpacity } from 'react-native';
-import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Alert, Image } from 'react-native';
 
-import { useState, useEffect, } from 'react';
-import { ScrollView, FlatList, Pressable, } from 'react-native';
+import { useState, useEffect } from 'react';
+import { ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { getAuthenticatedUser } from '../services/authService';
 
-const profileScreen = ({ navigation }: { navigation: any }) => {
-  const [flexDirection, setflexDirection] = useState('column');
+const STRAPI_URL = 'http://localhost:1337';
+
+type ProfilePicture = {
+  url?: string;
+};
+
+type ProfileUser = {
+  id: number;
+  profilePicture?: ProfilePicture | { data?: ProfilePicture } | null;
+};
+
+const getProfilePictureUrl = (profilePicture: ProfileUser['profilePicture']) => {
+  const picture = profilePicture && 'data' in profilePicture
+    ? profilePicture.data
+    : profilePicture && 'url' in profilePicture
+      ? profilePicture
+      : null;
+
+  if (!picture?.url) {
+    return null;
+  }
+
+  return picture.url.startsWith('http') ? picture.url : `${STRAPI_URL}${picture.url}`;
+};
+
+const ProfileScreen = ({ navigation }: { navigation: any }) => {
   const [selectedTab, setSelectedTab] = useState('Basic Info');
-  const [products, setProducts] = useState([]);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [isLoadingPicture, setIsLoadingPicture] = useState(true);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [isDeletingPicture, setIsDeletingPicture] = useState(false);
+
+  useEffect(() => {
+    const loadProfilePicture = async () => {
+      try {
+        const result = await getAuthenticatedUser();
+        if (result) {
+          setProfilePictureUrl(getProfilePictureUrl((result.user as ProfileUser).profilePicture));
+        }
+      } catch (error) {
+        Alert.alert('Could not load profile', error instanceof Error ? error.message : 'Please try again.');
+      } finally {
+        setIsLoadingPicture(false);
+      }
+    };
+
+    loadProfilePicture();
+  }, []);
+
+  const uploadProfilePicture = async (imageUri: string, token: string) => {
+    const formData = new FormData();
+
+    formData.append('files', {
+      uri: imageUri,
+      name: 'profile-picture.jpg',
+      type: 'image/jpeg',
+    } as any);
+
+    const uploadResponse = await fetch(`${STRAPI_URL}/api/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const uploadedFiles = await uploadResponse.json();
+    if (!uploadResponse.ok || !uploadedFiles[0]?.id) {
+      throw new Error(uploadedFiles.error?.message || 'Could not upload your profile picture.');
+    }
+
+    return uploadedFiles[0];
+  };
+
+  const handleChangePhoto = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+    });
+
+    if (result.didCancel || !result.assets?.[0]?.uri) {
+      return;
+    }
+
+    setIsUploadingPicture(true);
+    try {
+      const authenticatedUser = await getAuthenticatedUser();
+      if (!authenticatedUser) {
+        navigation.replace('LoginScreen');
+        return;
+      }
+
+      const uploadedFile = await uploadProfilePicture(result.assets[0].uri, authenticatedUser.token);
+      const updateResponse = await fetch(`${STRAPI_URL}/api/users/${authenticatedUser.user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authenticatedUser.token}`,
+        },
+        body: JSON.stringify({
+          profilePicture: uploadedFile.id,
+        }),
+      });
+
+      const updatedUser = await updateResponse.json();
+      if (!updateResponse.ok) {
+        throw new Error(updatedUser.error?.message || 'Could not save your profile picture.');
+      }
+
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      setProfilePictureUrl(getProfilePictureUrl(updatedUser.profilePicture) || `${STRAPI_URL}${uploadedFile.url}`);
+    } catch (error) {
+      Alert.alert('Could not change photo', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setIsUploadingPicture(false);
+    }
+  };
+
+  const handleDeletePhoto = () => {
+    Alert.alert('Delete profile picture', 'Remove your current profile picture?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setIsDeletingPicture(true);
+          try {
+            const authenticatedUser = await getAuthenticatedUser();
+            if (!authenticatedUser) {
+              navigation.replace('LoginScreen');
+              return;
+            }
+
+            const updateResponse = await fetch(`${STRAPI_URL}/api/users/${authenticatedUser.user.id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authenticatedUser.token}`,
+              },
+              body: JSON.stringify({
+                profilePicture: null,
+              }),
+            });
+
+            const updatedUser = await updateResponse.json();
+            if (!updateResponse.ok) {
+              throw new Error(updatedUser.error?.message || 'Could not delete your profile picture.');
+            }
+
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            setProfilePictureUrl(null);
+          } catch (error) {
+            Alert.alert('Could not delete photo', error instanceof Error ? error.message : 'Please try again.');
+          } finally {
+            setIsDeletingPicture(false);
+          }
+        },
+      },
+    ]);
+  };
 
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("jwt");
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
 
     navigation.replace("LoginScreen");
   };
@@ -80,24 +239,50 @@ const profileScreen = ({ navigation }: { navigation: any }) => {
               // backgroundColor: '#7de1e8',
             }}
           >
-            <Image
-              source={require('./logo.jpg')}
-              style={{ width: 120, height: 120, marginTop: '5%', borderRadius: 60, borderWidth: 2, borderColor: '#589341', }}
-            />
+            {isLoadingPicture ? (
+              <View style={{ width: 120, height: 120, marginTop: '5%', borderRadius: 60, justifyContent: 'center', backgroundColor: '#e0e0e0' }}>
+                <ActivityIndicator />
+              </View>
+            ) : (
+              <Image
+                source={profilePictureUrl ? { uri: profilePictureUrl } : require('./default.jpg')}
+                style={{ width: 120, height: 120, marginTop: '5%', borderRadius: 60, borderWidth: 2, borderColor: '#589341' }}
+              />
+            )}
           </View>
-          <TouchableOpacity>
-            <View //change profile picture
-              style={{
-                marginTop: '5%',
-                alignItems: 'center',
-                padding: 10,
-              }}
-            >
-              <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#000000', borderRadius: 20, backgroundColor: '#e0e0e0', padding: 10, paddingHorizontal: 20 }}>
-                Change Photo
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <View
+            style={{
+              flexDirection: 'row',
+            }}
+          >
+            <TouchableOpacity onPress={handleChangePhoto} disabled={isUploadingPicture || isDeletingPicture}>
+              <View //change profile picture
+                style={{
+                  marginTop: '5%',
+                  alignItems: 'center',
+                  padding: 10,
+                }}
+              >
+                <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#000000', borderRadius: 20, backgroundColor: '#e0e0e0', padding: 10, paddingHorizontal: 20 }}>
+                  {isUploadingPicture ? 'Uploading...' : 'Change Photo'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDeletePhoto} disabled={isUploadingPicture || isDeletingPicture || !profilePictureUrl}>
+              <View
+                style={{
+                  marginTop: '12%',
+                  alignItems: 'center',
+                  padding: 10,
+                  backgroundColor : '#e0e0e0',
+                  borderRadius : 30,
+                }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 14, paddingHorizontal: 20, color: profilePictureUrl ? '#c62828' : '#999999' }}>
+                  {isDeletingPicture ? 'Deleting...' : 'Delete Photo'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
         <View
           style={{
@@ -364,19 +549,19 @@ const profileScreen = ({ navigation }: { navigation: any }) => {
             >
               <Text
                 style={{ fontSize: 16, borderRadius: 10, backgroundColor: '#aeb3b3', padding: 5, margin: 3 }}
-              >[Interests]
+              >Interests
               </Text>
               <Text
                 style={{ fontSize: 16, borderRadius: 10, backgroundColor: '#aeb3b3', padding: 5, margin: 3 }}
-              >[Travel]
+              >Travel
               </Text>
               <Text
                 style={{ fontSize: 16, borderRadius: 10, backgroundColor: '#aeb3b3', padding: 5, margin: 3 }}
-              >[Gaming]
+              >Gaming
               </Text>
               <Text
                 style={{ fontSize: 16, borderRadius: 10, backgroundColor: '#aeb3b3', padding: 5, margin: 3 }}
-              >[Design]
+              >Design
               </Text>
             </View>
 
@@ -544,4 +729,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default profileScreen;
+export default ProfileScreen;

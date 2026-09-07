@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Button, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from 'react-native';
 import { useState, useEffect, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
@@ -9,13 +9,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Clipboard from '@react-native-clipboard/clipboard';
-import { getAuthenticatedCart, getAuthenticatedUser, updateCart } from '../services/authService';
+import { addProductToCart, getAuthenticatedUser } from '../services/authService';
 
 import { Heart, Minus, Plus } from 'lucide-react-native';
+import { useDispatch } from 'react-redux';
+import { setCart } from '../components/redux/action';
+import { showNotification } from '../services/notifications';
 
 const DetailScreen = ({ route }: { route: any }) => {
 
   const { products } = route.params;
+  const dispatch = useDispatch();
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
   const [SelectedImage, setSelectedImage] = useState(products.thumbnail);
@@ -24,7 +28,6 @@ const DetailScreen = ({ route }: { route: any }) => {
   useEffect(() => {
     checkFavourite();
   }, []);
-
   const copyToken = async () => {
     const token = await AsyncStorage.getItem('token');
 
@@ -152,25 +155,15 @@ const DetailScreen = ({ route }: { route: any }) => {
 
   const addToCart = async () => {
     try {
-      if (typeof products.id !== 'number') {
-        Alert.alert('Error', 'Product numeric id is missing.');
-        return;
-      }
+      const updatedCart = await addProductToCart(products, quantity);
 
-      const result = await getAuthenticatedCart();
-
-      if (!result) {
+      if (!updatedCart) {
         Alert.alert('Login Required', 'Please login to use your cart.');
         return;
       }
 
-      const existingItem = result.cart.items.find((item: any) => {
-        const product = item.product?.data || item.product;
-        return product?.id === products.id;
-      });
-
-      await updateCart(products.id, existingItem ? existingItem.quantity + quantity : quantity, false);
-      Alert.alert('Added to cart', `${quantity} x ${products.title} was added to your cart.`);
+      dispatch(setCart(updatedCart?.cart.items || []));
+      showNotification('Added to cart', `${quantity} x ${products.title} was added to your cart.`);
     } catch (error: any) {
       Alert.alert('Cart error', error.message || 'Could not add this product to your cart.');
     }
