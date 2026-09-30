@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { loginUser } from '../services/authService';
 import { showNotification } from '../services/notifications';
 
-const loginscreen = ({ navigation }: { navigation: any }) => {
+const LoginScreen = ({ navigation }: { navigation: any }) => {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -76,6 +76,8 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
                     value={email}
                     onChangeText={(text) => setEmail(text)}
                     placeholderTextColor="#000"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                     style={{
                         backgroundColor: '#fff',
                         // margin: 10,
@@ -104,6 +106,22 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
                 >
 
                 </TextInput>
+            </View>
+            <View
+                style={{
+                    alignItems: 'flex-end',
+                    marginRight: 10,
+                }}
+            >
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('ForgotScreen')}
+                >
+                    <Text
+                        style={{
+                            color: '#0d1be4',
+                        }}
+                    >Forgot Password?</Text>
+                </TouchableOpacity>
             </View>
             <View>
                 <TouchableOpacity
@@ -157,4 +175,4 @@ const loginscreen = ({ navigation }: { navigation: any }) => {
 
 
 
-export default loginscreen;
+export default LoginScreen;

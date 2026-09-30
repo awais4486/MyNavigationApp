@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://localhost:1337/api';
+const BASE_URL = 'http://192.168.86.56:1337/api';
 
 export const getStoredToken = async () => {
     return AsyncStorage.getItem('token');
@@ -217,6 +217,32 @@ export const registerUser = async (
 
     return data;
 };
+
+export const sendPasswordResetEmail = async (email: string) => {
+    const response = await fetch(
+        `${BASE_URL}/auth/forgot-password`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+            }),
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            data.error?.message || 'Password reset request failed'
+        );
+    }
+
+    return data;
+};
+
 export const loginUser = async (
     identifier: string,
     password: string

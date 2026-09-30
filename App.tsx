@@ -8,8 +8,10 @@ import DetailScreen from './screens/DetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import ProfilePictureEditorScreen from './screens/ProfilePictureEditorScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
 import CartScreen from './screens/CartScreen';
+import ForgotScreen from './screens/ForgotScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { House } from 'lucide-react-native';
@@ -58,8 +60,14 @@ function App() {
         />
 
         <Stack.Screen
+          name="ProfilePictureEditor"
+          component={ProfilePictureEditorScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
           name="Home"
-          component={bottomTabs}
+          component={BottomTabs}
         />
 
         <Stack.Screen
@@ -71,13 +79,19 @@ function App() {
           name="ProfileScreen"
           component={ProfileScreen}
         />
+
+        <Stack.Screen
+          name="ForgotScreen"
+          component={ForgotScreen}
+        />
+        
       </Stack.Navigator>
       </NavigationContainer>
     </Provider>
   );
 }
 
-function bottomTabs() {
+function BottomTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -85,9 +99,10 @@ function bottomTabs() {
       }}
     >
       <Tab.Screen
-        name="Home"
+        name="Products"
         component={HomeScreen}
         options={{
+          tabBarLabel: 'Home',
           tabBarIcon: ({ color }) => (
             <House size={24} color={color} />
           )

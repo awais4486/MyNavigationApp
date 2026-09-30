@@ -111,7 +111,7 @@ const DetailScreen = ({ route }: { route: any }) => {
         };
 
       const response = await fetch(
-        `http://localhost:1337/api/users/${userId}`,
+        `http://192.168.86.56:1337/api/users/${userId}`,
         {
           method: 'PUT',
           headers: {

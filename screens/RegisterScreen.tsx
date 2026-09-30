@@ -15,56 +15,56 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
 
     const handleRegister = async () => {
 
-    // 1. Validate inputs
-    if (email.trim() === '') {
-        Alert.alert('Error', 'Please enter your email.');
-        return;
-    }
+        // 1. Validate inputs
+        if (email.trim() === '') {
+            Alert.alert('Error', 'Please enter your email.');
+            return;
+        }
 
-    if (username.trim() === '') {
-        Alert.alert('Error', 'Please enter your username.');
-        return;
-    }
+        if (username.trim() === '') {
+            Alert.alert('Error', 'Please enter your username.');
+            return;
+        }
 
-    if (password.trim() === '') {
-        Alert.alert('Error', 'Please enter your password.');
-        return;
-    }
+        if (password.trim() === '') {
+            Alert.alert('Error', 'Please enter your password.');
+            return;
+        }
 
-    if (confirmpassword.trim() === '') {
-        Alert.alert('Error', 'Please confirm your password.');
-        return;
-    }
+        if (confirmpassword.trim() === '') {
+            Alert.alert('Error', 'Please confirm your password.');
+            return;
+        }
 
-    if (password !== confirmpassword) {
-        Alert.alert('Error', 'Passwords do not match.');
-        return;
-    }
+        if (password !== confirmpassword) {
+            Alert.alert('Error', 'Passwords do not match.');
+            return;
+        }
 
-    // 2. Call Strapi
-    try {
+        // 2. Call Strapi
+        try {
 
-        const result = await registerUser(
-            username,
-            email,
-            password
-        );
+            const result = await registerUser(
+                username,
+                email,
+                password
+            );
 
-        console.log(result);
+            console.log(result);
 
-        Alert.alert("Success", "Registration successful!");
+            Alert.alert("Success", "Registration successful!");
 
-        navigation.replace("LoginScreen");
+            navigation.replace("LoginScreen");
 
-    } catch (error: any) {
+        } catch (error: any) {
 
-        Alert.alert(
-            "Registration Failed",
-            error.message
-        );
+            Alert.alert(
+                "Registration Failed",
+                error.message
+            );
 
-    }
-};
+        }
+    };
 
     return (
         <View style={{
@@ -97,6 +97,8 @@ const RegisterScreen = ({ navigation }: { navigation: any }) => {
                     value={email}
                     onChangeText={setEmail}
                     placeholderTextColor="#000"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                     style={{
                         backgroundColor: '#fff',
                         // margin: 10,

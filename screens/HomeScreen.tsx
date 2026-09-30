@@ -5,16 +5,17 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 // const HomeScreen = ({ navigation }: { navigation: any }) => {
 
 import { useRef, useState, useEffect } from 'react';
-import { ScrollView, FlatList, Dimensions } from 'react-native';
+import { ScrollView, FlatList, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 
 // import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { Scroll, Search, ShoppingCart } from 'lucide-react-native';
+import { Scroll, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-react-native';
 import { addProductToCart } from '../services/authService';
-import { useDispatch } from 'react-redux';
-import { setCart } from '../components/redux/action';
+import { useDispatch, useSelector } from 'react-redux';
+import { addRecentSearch, clearRecentSearches, setCart } from '../components/redux/action';
 
-const STRAPI_URL = 'http://localhost:1337';
+const STRAPI_URL = 'http://192.168.86.56:1337';
 
 const normalizeProduct = (product: any) => {
   const normalizedProduct = product?.attributes
@@ -53,21 +54,43 @@ const getProductImageUrl = (product: any) => {
 const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
   const [flexDirection, setflexDirection] = useState('column');
   const [selectedCat, setSelectedCat] = useState('ALL');
+  const [sortOrder, setSortOrder] = useState('recommended');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
 
   const [searchText, setsearchText] = useState('');
 
   const screenWidth = Dimensions.get("window").width;
+
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
 
   const [products, setProducts] = useState<any[]>([]);
   const [topRatedProducts, setTopRatedProducts] = useState<any[]>([]);
   const carouselRef = useRef<FlatList<any>>(null);
   const carouselIndex = useRef(0);
   const dispatch = useDispatch();
+  const recentSearches = useSelector((state: any) => state.search.recentSearches);
 
   useEffect(() => {
     fetchProducts();
     fetchTopRatedProducts();
   }, []);
+
+  useEffect(() => {
+    if (!products.length) {
+      return;
+    }
+
+    const prices = products.map((product) => Number(product.price) || 0);
+    const lowestPrice = Math.min(...prices);
+    const highestPrice = Math.max(...prices);
+
+    setPriceRange((currentRange) => (
+      currentRange[0] === 0 && currentRange[1] === 0
+        ? [lowestPrice, highestPrice]
+        : currentRange
+    ));
+  }, [products]);
 
   useEffect(() => {
     if (topRatedProducts.length < 2) {
@@ -148,8 +171,47 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
       item.title?.toLowerCase().includes(search) ||
       item.description?.toLowerCase().includes(search);
 
-    return matchesCategory && matchesSearch;
+    const price = Number(item.price) || 0;
+    const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
+
+    return matchesCategory && matchesSearch && matchesPrice;
+  }).sort((firstProduct, secondProduct) => {
+    if (sortOrder === 'price-low-high') {
+      return Number(firstProduct.price) - Number(secondProduct.price);
+    }
+
+    if (sortOrder === 'price-high-low') {
+      return Number(secondProduct.price) - Number(firstProduct.price);
+    }
+
+    return 0;
   });
+
+  const priceValues = products.map((product) => Number(product.price) || 0);
+  const priceBounds: [number, number] = priceValues.length
+    ? [Math.min(...priceValues), Math.max(...priceValues)]
+    : [0, 0];
+
+  const resetFilters = () => {
+    setSelectedCat('ALL');
+    setSortOrder('recommended');
+    setPriceRange(priceBounds);
+  };
+
+  const openFilterMenu = () => setShowFilterMenu(true);
+  const closeFilterMenu = () => setShowFilterMenu(false);
+
+  const openRecentSearches = () => {
+    const search = searchText.trim();
+
+    if (search) {
+      dispatch(addRecentSearch(search));
+    }
+
+    setShowRecentSearches(true);
+  };
+
+  const closeRecentSearches = () => setShowRecentSearches(false);
 
   const handleAddToCart = async (product: any) => {
     try {
@@ -176,14 +238,14 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
     }}>
       <View
         style={{
-          marginTop: '13%',
+          marginTop: '5%',
           marginLeft: '5%',
         }}
       >
         <Text
           style={{
             fontWeight: '700',
-            fontSize: 33,
+            fontSize: 27,
           }}
         >
           PRODUCT DISCOVERY
@@ -213,7 +275,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
             value={searchText}
             onChangeText={setsearchText}
             style={{
-              fontSize: 22,
+              fontSize: 15,
               padding: 5,
             }}
           />
@@ -222,15 +284,75 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
           style={{
             alignContent: 'flex-start',
             justifyContent: 'flex-start',
+            flexDirection: 'row',
           }}
         >
           <TouchableOpacity
-            onPress={() => filteredProducts.filter((item: any) => (typeof item === 'string' ? item.toLowerCase().includes(searchText.toLowerCase()) : item.title?.toLowerCase().includes(searchText.toLowerCase())))}
+            onPress={() => {
+              setsearchText('');
+              closeRecentSearches();
+            }}
+            accessibilityLabel="Clear search"
+            style={styles.clearSearchButton}
+          >
+            {(searchText || showRecentSearches) ? <X size={20} color="#555" /> : null}
+          </TouchableOpacity> 
+          <TouchableOpacity
+            onPress={openRecentSearches}
+            accessibilityLabel="Show recent searches"
+            style={{
+              paddingTop: 2,
+            }}
           >
             <Search size={25} color={'#80d3d7'} />
           </TouchableOpacity>
+          <TouchableOpacity
+            onPress={openFilterMenu}
+            accessibilityLabel="Open product filters"
+            style={styles.filterButton}
+          >
+            <SlidersHorizontal size={25} color={'#80d3d7'} />
+          </TouchableOpacity>
         </View>
       </View>
+      {showRecentSearches && (
+        <View style={styles.recentSearchPanel}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Recent searches</Text>
+            <TouchableOpacity
+              onPress={closeRecentSearches}
+              accessibilityLabel="Close recent searches"
+            >
+              <X size={22} color="#222" />
+            </TouchableOpacity>
+          </View>
+          {recentSearches.length ? (
+            <>
+              {recentSearches.map((search: string) => (
+                <TouchableOpacity
+                  key={search}
+                  style={styles.recentSearchOption}
+                  onPress={() => {
+                    setsearchText(search);
+                    closeRecentSearches();
+                  }}
+                >
+                  <Search size={18} color="#555" />
+                  <Text style={styles.recentSearchText}>{search}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                onPress={() => dispatch(clearRecentSearches())}
+                style={styles.clearSearchesButton}
+              >
+                <Text style={styles.clearSearchesText}>Clear recent searches</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={styles.emptySearchesText}>No recent searches yet.</Text>
+          )}
+        </View>
+      )}
       <ScrollView>
         <View>
           <FlatList
@@ -265,7 +387,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
           />
         </View>
         {/* // Product categories */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View
             style={{
               flexDirection: 'row',
@@ -335,20 +457,16 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
 
         <View
           style={{
-            flex: 50,
-            // marginTop: '20%',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            paddingHorizontal: 4,
+            paddingBottom: 20,
           }}
         >
-          <FlatList
-            data={filteredProducts}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{
-              paddingHorizontal: 10,
-              paddingBottom: 20,
-            }}
-            renderItem={({ item }) => (
+          {filteredProducts.map((item) => (
               <TouchableOpacity
+                key={item.id}
                 style={styles.card}
                 onPress={() =>
                   navigation.navigate('DetailScreen', {
@@ -390,10 +508,90 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
                 </Text>
 
               </TouchableOpacity>
-            )}
-          />
+          ))}
         </View>
       </ScrollView>
+      <Modal
+        visible={showFilterMenu}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        onRequestClose={closeFilterMenu}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterModal}>
+            <View style={styles.filterHeader}>
+              <Text style={styles.filterTitle}>Filter products</Text>
+              <TouchableOpacity
+                onPress={closeFilterMenu}
+                accessibilityLabel="Close product filters"
+              >
+                <X size={25} color="#222" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.filterSectionTitle}>Category</Text>
+            {['ALL', 'LAPTOPS', 'BEAUTY', 'FRAGRANCES', 'FURNITURE'].map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={styles.filterOption}
+                onPress={() => {
+                  setSelectedCat(category);
+                  closeFilterMenu();
+                }}
+              >
+                <Text style={selectedCat === category ? styles.selectedCategory : styles.filterOptionText}>
+                  {category === 'ALL' ? 'All products' : category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <Text style={styles.filterSectionTitle}>Sort by price</Text>
+            {[
+              ['recommended', 'Recommended'],
+              ['price-low-high', 'Price: low to high'],
+              ['price-high-low', 'Price: high to low'],
+            ].map(([value, label]) => (
+              <TouchableOpacity
+                key={value}
+                style={styles.filterOption}
+                onPress={() => setSortOrder(value)}
+              >
+                <Text style={sortOrder === value ? styles.selectedCategory : styles.filterOptionText}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.priceFilter}>
+              <Text style={styles.filterSectionTitle}>Price range</Text>
+              <View style={styles.priceLabels}>
+                <Text>${priceRange[0].toFixed(0)}</Text>
+                <Text>${priceRange[1].toFixed(0)}</Text>
+              </View>
+              <MultiSlider
+                values={priceRange}
+                min={priceBounds[0]}
+                max={priceBounds[1] || 1}
+                step={1}
+                sliderLength={290}
+                onValuesChange={(values: number[]) => setPriceRange([values[0], values[1]])}
+                selectedStyle={styles.sliderSelected}
+                unselectedStyle={styles.sliderUnselected}
+                markerStyle={styles.sliderMarker}
+                enabledOne={priceBounds[1] > priceBounds[0]}
+                enabledTwo={priceBounds[1] > priceBounds[0]}
+              />
+            </View>
+            <View style={styles.filterActions}>
+              <TouchableOpacity onPress={resetFilters} style={styles.resetButton}>
+                <Text style={styles.resetButtonText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={closeFilterMenu} style={styles.applyButton}>
+                <Text style={styles.applyButtonText}>Apply filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -407,12 +605,11 @@ const styles = StyleSheet.create({
     // borderWidth: 10,
   },
   card: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#fff',
-    margin: 6,
+    marginVertical: 6,
     borderRadius: 12,
     padding: 10,
-    maxWidth: '50%',
 
     shadowColor: '#000',
     shadowOffset: {
@@ -464,6 +661,140 @@ const styles = StyleSheet.create({
   selectedCategory: {
     fontWeight: '600',
     paddingHorizontal: 10,
+  },
+
+  filterButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+
+  clearSearchButton: {
+    minWidth: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  saleBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+  },
+  filterModal: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+  },
+  recentSearchPanel: {
+    marginHorizontal: '3%',
+    marginTop: 4,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  filterTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  filterSectionTitle: {
+    marginTop: 12,
+    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  filterOption: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  filterOptionText: {
+    fontSize: 17,
+  },
+  priceFilter: {
+    marginTop: 4,
+  },
+  priceLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sliderSelected: {
+    backgroundColor: '#80d3d7',
+  },
+  sliderUnselected: {
+    backgroundColor: '#c6d0d0',
+  },
+  sliderMarker: {
+    backgroundColor: '#80d3d7',
+    height: 20,
+    width: 20,
+  },
+  filterActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  resetButton: {
+    padding: 12,
+  },
+  resetButtonText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  applyButton: {
+    backgroundColor: '#80d3d7',
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  recentSearchOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ccc',
+  },
+  recentSearchText: {
+    fontSize: 17,
+    color: '#222',
+  },
+  clearSearchesButton: {
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  clearSearchesText: {
+    color: '#b42318',
+    fontWeight: '600',
+  },
+  emptySearchesText: {
+    color: '#555',
+    fontSize: 16,
+    paddingVertical: 12,
   },
 });
 

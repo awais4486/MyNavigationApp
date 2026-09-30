@@ -2,13 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { StyleSheet, Alert, Image } from 'react-native';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import { ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { getAuthenticatedUser } from '../services/authService';
 
-const STRAPI_URL = 'http://localhost:1337';
+const STRAPI_URL = 'http://192.168.86.56:1337';
 
 type ProfilePicture = {
   url?: string;
@@ -33,7 +33,7 @@ const getProfilePictureUrl = (profilePicture: ProfileUser['profilePicture']) => 
   return picture.url.startsWith('http') ? picture.url : `${STRAPI_URL}${picture.url}`;
 };
 
-const ProfileScreen = ({ navigation }: { navigation: any }) => {
+const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) => {
   const [selectedTab, setSelectedTab] = useState('Basic Info');
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [isLoadingPicture, setIsLoadingPicture] = useState(true);
@@ -82,16 +82,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     return uploadedFiles[0];
   };
 
-  const handleChangePhoto = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-    });
-
-    if (result.didCancel || !result.assets?.[0]?.uri) {
-      return;
-    }
-
+  const saveProfilePicture = async (imageUri: string) => {
     setIsUploadingPicture(true);
     try {
       const authenticatedUser = await getAuthenticatedUser();
@@ -100,7 +91,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
         return;
       }
 
-      const uploadedFile = await uploadProfilePicture(result.assets[0].uri, authenticatedUser.token);
+      const uploadedFile = await uploadProfilePicture(imageUri, authenticatedUser.token);
       const updateResponse = await fetch(`${STRAPI_URL}/api/users/${authenticatedUser.user.id}`, {
         method: 'PUT',
         headers: {
@@ -124,6 +115,47 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     } finally {
       setIsUploadingPicture(false);
     }
+  };
+
+  const processEditedPhoto = useEffectEvent((editedImageUri: string) => {
+    navigation.setParams({ editedImageUri: undefined });
+    saveProfilePicture(editedImageUri).catch(() => undefined);
+  });
+
+  useEffect(() => {
+    const editedImageUri = route.params?.editedImageUri;
+    if (editedImageUri) {
+      processEditedPhoto(editedImageUri);
+    }
+  }, [route.params?.editedImageUri]);
+
+  const handleChangePhoto = () => {
+    Alert.alert('Change profile photo', 'Choose a photo source.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Camera', onPress: () => choosePhoto('camera') },
+      { text: 'Photo library', onPress: () => choosePhoto('library') },
+    ]);
+  };
+
+  const choosePhoto = async (source: 'camera' | 'library') => {
+    const result = source === 'camera'
+      ? await launchCamera({ mediaType: 'photo', cameraType: 'front', saveToPhotos: false })
+      : await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1 });
+
+    if (result.didCancel || !result.assets?.[0]?.uri) {
+      return;
+    }
+
+    navigation.navigate('ProfilePictureEditor', { imageUri: result.assets[0].uri });
+  };
+
+  const handleEditProfilePicture = () => {
+    if (!profilePictureUrl) {
+      handleChangePhoto();
+      return;
+    }
+
+    navigation.navigate('ProfilePictureEditor', { imageUri: profilePictureUrl });
   };
 
   const handleDeletePhoto = () => {
@@ -194,7 +226,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           <View
             style={{
               alignItems: 'center',
-              marginTop: '10%',
+              marginTop: '5%',
               // padding: 10,
 
               // backgroundColor: '#589341',
@@ -202,7 +234,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           >
             <Text
               style={{
-                fontSize: 30,
+                fontSize: 20,
                 fontWeight: 'bold'
               }}>
               Customize Your Profile
@@ -210,8 +242,9 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
           </View>
           <TouchableOpacity onPress={handleLogout}>
             <View
-              style={{
-                marginTop: '25%',
+              style={{  
+                // alignItems: 'flex-start',
+                marginTop: '10%',
                 padding: 5,
                 borderRadius: 20,
                 borderWidth: 5,
@@ -232,7 +265,11 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
             // backgroundColor: '#7de1e8',
           }}
         >
-          <View //profilepic
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile picture"
+            disabled={isLoadingPicture || isUploadingPicture || isDeletingPicture}
+            onPress={handleEditProfilePicture}
             style={{
               alignItems: 'center',
               // marginTop: '10%',
@@ -249,7 +286,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
                 style={{ width: 120, height: 120, marginTop: '5%', borderRadius: 60, borderWidth: 2, borderColor: '#589341' }}
               />
             )}
-          </View>
+          </Pressable>
           <View
             style={{
               flexDirection: 'row',
