@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.86.56:1337/api';
+const BASE_URL = 'http://192.168.86.46:1337/api';
 
 export const getStoredToken = async () => {
     return AsyncStorage.getItem('token');
@@ -90,6 +90,13 @@ export const updateCart = async (
         const product = item.product?.data || item.product;
         return product?.id === productId;
     });
+
+    const product = existingItem?.product?.data || existingItem?.product;
+    const availableStock = Number(product?.stock);
+
+    if (!shouldRemove && Number.isFinite(availableStock) && quantity > availableStock) {
+        throw new Error(`Only ${availableStock} item${availableStock === 1 ? '' : 's'} available for ${product.title || 'this product'}.`);
+    }
 
     if (shouldRemove) {
         if (!existingItem) {
@@ -186,6 +193,46 @@ export const removeCartItem = async (cartItem: any) => {
     }
 
     return response.status === 204 ? null : response.json();
+};
+
+export const decreaseProductStock = async (product: any, quantity: number) => {
+    const result = await getAuthenticatedCart();
+
+    if (!result) {
+        return null;
+    }
+
+    const currentStock = Number(product?.stock);
+    const purchaseQuantity = Number(quantity);
+    const productIdentifier = product?.documentId || product?.id;
+
+    if (!productIdentifier || !Number.isFinite(currentStock) || !Number.isFinite(purchaseQuantity)) {
+        throw new Error('Product stock information is missing.');
+    }
+
+    if (purchaseQuantity < 1 || purchaseQuantity > currentStock) {
+        throw new Error(`Only ${currentStock} item${currentStock === 1 ? '' : 's'} available for ${product.title || 'this product'}.`);
+    }
+
+    const response = await fetch(`${BASE_URL}/products/${productIdentifier}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${result.token}`,
+        },
+        body: JSON.stringify({
+            data: {
+                stock: currentStock - purchaseQuantity,
+            },
+        }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error?.message || 'Could not update product stock.');
+    }
+
+    return data;
 };
 
 export const registerUser = async (

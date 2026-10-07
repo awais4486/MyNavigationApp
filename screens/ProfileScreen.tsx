@@ -5,10 +5,11 @@ import { StyleSheet, Alert, Image } from 'react-native';
 import { useState, useEffect, useEffectEvent } from 'react';
 import { ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { getAuthenticatedUser } from '../services/authService';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const STRAPI_URL = 'http://192.168.86.56:1337';
+const STRAPI_URL = 'http://192.168.86.46:1337';
 
 type ProfilePicture = {
   url?: string;
@@ -138,24 +139,18 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
   };
 
   const choosePhoto = async (source: 'camera' | 'library') => {
-    const result = source === 'camera'
-      ? await launchCamera({ mediaType: 'photo', cameraType: 'front', saveToPhotos: false })
-      : await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1 });
+    if (source === 'camera') {
+      navigation.navigate('ProfileCamera');
+      return;
+    }
+
+    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1 });
 
     if (result.didCancel || !result.assets?.[0]?.uri) {
       return;
     }
 
     navigation.navigate('ProfilePictureEditor', { imageUri: result.assets[0].uri });
-  };
-
-  const handleEditProfilePicture = () => {
-    if (!profilePictureUrl) {
-      handleChangePhoto();
-      return;
-    }
-
-    navigation.navigate('ProfilePictureEditor', { imageUri: profilePictureUrl });
   };
 
   const handleDeletePhoto = () => {
@@ -201,7 +196,6 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
     ]);
   };
 
-
   const handleLogout = async () => {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
@@ -209,10 +203,13 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
     navigation.replace("LoginScreen");
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={{
       flex: 1,
       backgroundColor: '#cedddff6',
+      paddingTop: insets.top,
     }}>
       <ScrollView>
         <View
@@ -269,7 +266,7 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
             accessibilityRole="button"
             accessibilityLabel="Edit profile picture"
             disabled={isLoadingPicture || isUploadingPicture || isDeletingPicture}
-            onPress={handleEditProfilePicture}
+            onPress={handleChangePhoto}
             style={{
               alignItems: 'center',
               // marginTop: '10%',

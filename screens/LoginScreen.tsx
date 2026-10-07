@@ -4,7 +4,7 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 
 import { useState, useEffect, } from 'react';
 import { ScrollView, FlatList, Pressable, } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { loginUser } from '../services/authService';
 import { showNotification } from '../services/notifications';
@@ -45,9 +45,12 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
         }
     }
 
+    const insets = useSafeAreaInsets();
+
     return (
         <View style={{
             flex: 1,
+            paddingTop: insets.top + 10,
             alignContent: 'center',
             backgroundColor: '#cedddff6',
         }}>

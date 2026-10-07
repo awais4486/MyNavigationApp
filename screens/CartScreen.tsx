@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Trash2 } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { getAuthenticatedCart, removeCartItem, updateCart } from '../services/authService';
+import { decreaseProductStock, getAuthenticatedCart, removeCartItem, updateCart } from '../services/authService';
 import { clearCart, removeCartItemFromStore, setCart } from '../components/redux/action';
 import { showNotification } from '../services/notifications';
 
@@ -75,13 +75,16 @@ const CartScreen = () => {
 
         const previousProducts = products;
         setPlacingOrder(true);
-        dispatch(clearCart());
 
         try {
+            await Promise.all(previousProducts.map((cartItem) => {
+                const product = cartItem.product?.data || cartItem.product;
+                return decreaseProductStock(product, cartItem.quantity);
+            }));
             await Promise.all(previousProducts.map(removeCartItem));
+            dispatch(clearCart());
             showNotification('Order placed', 'Your order has been placed successfully and your cart is now clear.');
         } catch (error: any) {
-            dispatch(setCart(previousProducts));
             Alert.alert('Order error', error.message || 'Could not clear your cart.');
         } finally {
             setPlacingOrder(false);

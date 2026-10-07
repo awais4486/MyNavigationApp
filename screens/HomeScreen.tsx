@@ -6,8 +6,9 @@ import { Platform, StyleSheet, ImageBackground, Alert, TextInput, Image } from '
 
 import { useRef, useState, useEffect } from 'react';
 import { ScrollView, FlatList, Dimensions, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
+
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { Scroll, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-react-native';
@@ -15,7 +16,7 @@ import { addProductToCart } from '../services/authService';
 import { useDispatch, useSelector } from 'react-redux';
 import { addRecentSearch, clearRecentSearches, setCart } from '../components/redux/action';
 
-const STRAPI_URL = 'http://192.168.86.56:1337';
+const STRAPI_URL = 'http://192.168.86.46:1337';
 
 const normalizeProduct = (product: any) => {
   const normalizedProduct = product?.attributes
@@ -229,9 +230,12 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     // <ScrollView style={{ flex: 1, backgroundColor: '#e9f4f6', }}>
     <View style={{
+      paddingTop: insets.top,
       flex: 1,
       alignContent: 'center',
       backgroundColor: '#cedddff6',
@@ -245,7 +249,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
         <Text
           style={{
             fontWeight: '700',
-            fontSize: 27,
+            fontSize: 30,
           }}
         >
           PRODUCT DISCOVERY
@@ -253,7 +257,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
         <Text
           style={{
             fontWeight: '500',
-            // fontSize: 33,
+            fontSize: 20,
           }}
         >
           CURATED SELECTIONS

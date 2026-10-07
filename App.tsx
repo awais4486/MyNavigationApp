@@ -9,8 +9,10 @@ import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ProfilePictureEditorScreen from './screens/ProfilePictureEditorScreen';
+import ProfileCameraScreen from './screens/ProfileCameraScreen';
 import FavouriteScreen from './screens/FavouriteScreen';
 import CartScreen from './screens/CartScreen';
+import OrderHistoryScreen from './screens/OrderHistoryScreen';
 import ForgotScreen from './screens/ForgotScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -18,6 +20,7 @@ import { House } from 'lucide-react-native';
 import { Heart } from 'lucide-react-native';
 import { Scissors } from 'lucide-react-native';
 import { ShoppingCart } from 'lucide-react-native';
+import { History } from 'lucide-react-native';
 import { Provider } from 'react-redux';
 import store from './components/redux/store';
 import * as NotificationService from './services/notifications';
@@ -62,6 +65,12 @@ function App() {
         <Stack.Screen
           name="ProfilePictureEditor"
           component={ProfilePictureEditorScreen}
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ProfileCamera"
+          component={ProfileCameraScreen}
           options={{ headerShown: false }}
         />
 
@@ -133,6 +142,16 @@ function BottomTabs() {
         options={{
           tabBarIcon: ({ color }) => (
             <ShoppingCart size={24} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="OrderHistory"
+        component={OrderHistoryScreen}
+        options={{
+          tabBarLabel: 'Orders',
+          tabBarIcon: ({ color }) => (
+            <History size={24} color={color} />
           )
         }}
       />

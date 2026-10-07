@@ -13,6 +13,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Heart } from 'lucide-react-native';
 
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { getAuthenticatedUser } from '../services/authService';
 
 const FavouriteScreen = ({ navigation }: { navigation: any }) => {
@@ -20,7 +22,6 @@ const FavouriteScreen = ({ navigation }: { navigation: any }) => {
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState('');
-
 	const loadFavourites = useCallback(async (isRefresh = false) => {
 		if (isRefresh) {
 			setRefreshing(true);
@@ -93,15 +94,17 @@ const FavouriteScreen = ({ navigation }: { navigation: any }) => {
 
 	if (loading) {
 		return (
-			<View style={styles.centerContent}>
-				<ActivityIndicator size="large" color="#e53935" />
-				<Text style={styles.statusText}>Loading favourites...</Text>
-			</View>
+			<SafeAreaView style={styles.container}>
+				<View style={styles.centerContent}>
+					<ActivityIndicator size="large" color="#e53935" />
+					<Text style={styles.statusText}>Loading favourites...</Text>
+				</View>
+			</SafeAreaView>
 		);
 	}
-
+	
 	return (
-		<View style={styles.container}>
+		<SafeAreaView style={styles.container}>
 			<View style={styles.header}>
 				<View>
 					<Text style={styles.heading}>MY FAVOURITES</Text>
@@ -152,7 +155,7 @@ const FavouriteScreen = ({ navigation }: { navigation: any }) => {
 					)}
 				/>
 			)}
-		</View>
+		</SafeAreaView>
 	);
 };
 
@@ -162,7 +165,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#f4f7f8',
-		paddingTop: 55,
 	},
 	header: {
 		flexDirection: 'row',
