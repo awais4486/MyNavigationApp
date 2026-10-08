@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Trash2 } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { decreaseProductStock, getAuthenticatedCart, removeCartItem, updateCart } from '../services/authService';
+import { createOrder, createOrderItem, decreaseProductStock, getAuthenticatedCart, removeCartItem, updateCart } from '../services/authService';
 import { clearCart, removeCartItemFromStore, setCart } from '../components/redux/action';
 import { showNotification } from '../services/notifications';
 
@@ -77,6 +77,32 @@ const CartScreen = () => {
         setPlacingOrder(true);
 
         try {
+            const cartResult = await getAuthenticatedCart();
+            if (!cartResult) {
+                throw new Error('Please log in before placing an order.');
+            }
+
+            const totalAmount = previousProducts.reduce((total, cartItem) => {
+                const product = cartItem.product?.data || cartItem.product;
+                return total + Number(product?.price || 0) * Number(cartItem.quantity || 0);
+            }, 0);
+            const order = await createOrder({ totalAmount });
+
+            if (!order) {
+                throw new Error('Could not create order.');
+            }
+
+            await Promise.all(previousProducts.map((cartItem) => {
+                const product = cartItem.product?.data || cartItem.product;
+                const unitPrice = Number(product?.price || 0);
+
+                return createOrderItem({
+                    order,
+                    product,
+                    quantity: Number(cartItem.quantity),
+                    unitPrice,
+                });
+            }));
             await Promise.all(previousProducts.map((cartItem) => {
                 const product = cartItem.product?.data || cartItem.product;
                 return decreaseProductStock(product, cartItem.quantity);
@@ -186,22 +212,106 @@ const styles = StyleSheet.create({
         fontWeight: 'bold', 
         marginBottom: 16 
     },
-    empty: { color: '#666', fontSize: 17, marginTop: 24, textAlign: 'center' },
-    item: { alignItems: 'center', backgroundColor: '#fff', flexDirection: 'row', marginBottom: 12, padding: 12 },
-    image: { backgroundColor: '#F4F7F8', height: 78, width: 78 },
-    details: { flex: 1, marginHorizontal: 12 },
-    title: { fontSize: 17, fontWeight: '600' },
-    price: { color: '#2196F3', fontSize: 18, fontWeight: 'bold', marginTop: 8 },
-    quantityControls: { alignItems: 'center', flexDirection: 'row', marginTop: 8 },
-    quantityButton: { alignItems: 'center', borderColor: '#ccd4d7', borderRadius: 6, borderWidth: 1, height: 28, justifyContent: 'center', width: 28 },
-    quantityButtonText: { fontSize: 18, fontWeight: 'bold' },
-    quantity: { fontSize: 16, fontWeight: '600', minWidth: 32, textAlign: 'center' },
-    summary: { borderTopColor: '#d9e0e3', borderTopWidth: 1, paddingTop: 14 },
-    summaryText: { color: '#555', fontSize: 17 },
-    summaryTotal: { fontSize: 22, fontWeight: 'bold', marginTop: 4 },
-    placeOrderButton: { alignItems: 'center', backgroundColor: '#2196F3', borderRadius: 8, marginTop: 8, paddingVertical: 14 },
-    disabledButton: { opacity: 0.6 },
-    placeOrderText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+    empty: 
+    { 
+        color: '#666', 
+        fontSize: 17, 
+        marginTop: 24, 
+        textAlign: 'center' 
+    },
+    item: 
+    { 
+        alignItems: 'center', 
+        backgroundColor: '#fff', 
+        flexDirection: 'row', marginBottom: 12, padding: 12 },
+    image: 
+    { 
+        backgroundColor: '#F4F7F8', 
+        height: 78, 
+        width: 78 
+    },
+    details: 
+    { 
+        flex: 1, 
+        marginHorizontal: 12 
+
+    },
+    title: 
+    { 
+        fontSize: 17, 
+        fontWeight: '600' 
+
+    },
+    price: 
+    { 
+        color: '#2196F3', 
+        fontSize: 18, fontWeight: 'bold', 
+        marginTop: 8 
+    },
+    quantityControls: 
+    { 
+        alignItems: 'center', 
+        flexDirection: 'row', 
+        marginTop: 8 
+    },
+    quantityButton: 
+    { 
+        alignItems: 'center', 
+        borderColor: '#ccd4d7', 
+        borderRadius: 6, 
+        borderWidth: 1, 
+        height: 28, 
+        justifyContent: 'center', 
+        width: 28 
+    },
+    quantityButtonText: 
+    { 
+        fontSize: 18, 
+        fontWeight: 'bold' 
+    },
+    quantity: 
+    { 
+        fontSize: 16, 
+        fontWeight: '600', 
+        minWidth: 32, 
+        textAlign: 'center' 
+    },
+    summary: 
+    { 
+        borderTopColor: '#d9e0e3', 
+        borderTopWidth: 1, 
+        paddingTop: 14 
+    },
+    summaryText: 
+    { 
+        color: '#555', 
+        fontSize: 17 
+
+    },
+    summaryTotal: 
+    { 
+        fontSize: 22, 
+        fontWeight: 'bold', 
+        marginTop: 4 
+    },
+    placeOrderButton: 
+    { 
+        alignItems: 'center', 
+        backgroundColor: '#2196F3', 
+        borderRadius: 8, 
+        marginTop: 8, 
+        paddingVertical: 14 
+    },
+    disabledButton: 
+    { 
+        opacity: 0.6 
+
+    },
+    placeOrderText: 
+    { 
+        color: '#fff', 
+        fontSize: 17, 
+        fontWeight: 'bold' },
 });
 
 export default CartScreen;

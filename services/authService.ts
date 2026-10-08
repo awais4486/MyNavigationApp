@@ -74,6 +74,28 @@ export const getAuthenticatedCart = async () => {
     return { token, user, cart: { items: itemsData.data || [] } };
 };
 
+export const getOrderHistory = async () => {
+    const result = await getAuthenticatedUser();
+
+    if (!result) {
+        return null;
+    }
+
+    const response = await fetch(
+        `${BASE_URL}/orders?filters[user][id][$eq]=${result.user.id}&populate[order_items][populate][product]=true&sort=orderDate:desc`,
+        { headers: { Authorization: `Bearer ${result.token}` } }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error?.message || 'Could not load order history.');
+    }
+
+    return data.data || [];
+};
+
+
+
 export const updateCart = async (
     productId: number,
     quantity: number,
@@ -230,6 +252,99 @@ export const decreaseProductStock = async (product: any, quantity: number) => {
 
     if (!response.ok) {
         throw new Error(data.error?.message || 'Could not update product stock.');
+    }
+
+    return data;
+};
+
+type CreateOrderInput = {
+    totalAmount: number;
+    shippingAddress?: string;
+    orderNumber?: string;
+    orderStatus?: string;
+    orderDate?: string;
+};
+
+type CreateOrderItemInput = {
+    order: any;
+    product: any;
+    quantity: number;
+    unitPrice: number;
+};
+
+const getRelationIdentifier = (entity: any) => entity?.documentId || entity?.id;
+
+export const createOrder = async ({
+    totalAmount,
+    shippingAddress = '',
+    orderNumber = `ORD-${Date.now()}`,
+    orderStatus = 'Pending',
+    orderDate = new Date().toISOString(),
+}: CreateOrderInput) => {
+    const result = await getAuthenticatedCart();
+
+    if (!result) {
+        return null;
+    }
+
+    const response = await fetch(`${BASE_URL}/orders`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${result.token}`,
+        },
+        body: JSON.stringify({
+            data: {
+                orderNumber,
+                totalAmount,
+                orderStatus,
+                orderDate,
+                shippingAddress,
+                user: getRelationIdentifier(result.user),
+            },
+        }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error?.message || 'Could not create order.');
+    }
+
+    return data;
+};
+
+export const createOrderItem = async ({
+    order,
+    product,
+    quantity,
+    unitPrice,
+}: CreateOrderItemInput) => {
+    const token = await getStoredToken();
+
+    if (!token) {
+        return null;
+    }
+
+    const response = await fetch(`${BASE_URL}/order-items`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            data: {
+                quantity,
+                unitPrice,
+                subtotal: quantity * unitPrice,
+                product: getRelationIdentifier(product),
+                order: getRelationIdentifier(order?.data || order),
+            },
+        }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error?.message || 'Could not create order item.');
     }
 
     return data;
