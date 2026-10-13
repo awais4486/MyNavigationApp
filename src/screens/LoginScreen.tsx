@@ -35,6 +35,10 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
             showNotification('Login successful', `Welcome ${result.user.username}!`);
             navigation.replace('Home');
 
+            // const temp = await authservice.login(
+
+            // )
+
         } catch (error: any) {
 
             Alert.alert(

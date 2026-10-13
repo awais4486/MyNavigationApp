@@ -7,9 +7,8 @@ import { ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getAuthenticatedUser } from '../services/authService';
+import { STRAPI_ORIGIN } from '../../config/api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const STRAPI_URL = 'http://192.168.86.46:1337';
 
 type ProfilePicture = {
   url?: string;
@@ -31,7 +30,7 @@ const getProfilePictureUrl = (profilePicture: ProfileUser['profilePicture']) => 
     return null;
   }
 
-  return picture.url.startsWith('http') ? picture.url : `${STRAPI_URL}${picture.url}`;
+  return picture.url.startsWith('http') ? picture.url : `${STRAPI_ORIGIN}${picture.url}`;
 };
 
 const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) => {
@@ -67,7 +66,7 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
       type: 'image/jpeg',
     } as any);
 
-    const uploadResponse = await fetch(`${STRAPI_URL}/api/upload`, {
+    const uploadResponse = await fetch(`${STRAPI_ORIGIN}/api/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -93,7 +92,7 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
       }
 
       const uploadedFile = await uploadProfilePicture(imageUri, authenticatedUser.token);
-      const updateResponse = await fetch(`${STRAPI_URL}/api/users/${authenticatedUser.user.id}`, {
+      const updateResponse = await fetch(`${STRAPI_ORIGIN}/api/users/${authenticatedUser.user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +109,7 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
       }
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-      setProfilePictureUrl(getProfilePictureUrl(updatedUser.profilePicture) || `${STRAPI_URL}${uploadedFile.url}`);
+      setProfilePictureUrl(getProfilePictureUrl(updatedUser.profilePicture) || `${STRAPI_ORIGIN}${uploadedFile.url}`);
     } catch (error) {
       Alert.alert('Could not change photo', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -168,7 +167,7 @@ const ProfileScreen = ({ navigation, route }: { navigation: any; route: any }) =
               return;
             }
 
-            const updateResponse = await fetch(`${STRAPI_URL}/api/users/${authenticatedUser.user.id}`, {
+            const updateResponse = await fetch(`${STRAPI_ORIGIN}/api/users/${authenticatedUser.user.id}`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',

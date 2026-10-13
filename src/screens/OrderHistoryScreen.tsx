@@ -1,13 +1,49 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { History } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getOrderHistory } from '../services/authService';
 
+const renderHighlightedOrderNumber = (orderNumber: string, searchText: string) => {
+    const query = searchText.trim();
+
+    if (!query) {
+        return orderNumber;
+    }
+
+    const parts = [];
+    const lowerOrderNumber = orderNumber.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    let currentIndex = 0;
+    let matchIndex = lowerOrderNumber.indexOf(lowerQuery, currentIndex);
+
+    while (matchIndex !== -1) {
+        if (matchIndex > currentIndex) {
+            parts.push(orderNumber.slice(currentIndex, matchIndex));
+        }
+
+        parts.push(
+            <Text key={`match-${matchIndex}`} style={styles.highlightedText}>
+                {orderNumber.slice(matchIndex, matchIndex + query.length)}
+            </Text>
+        );
+
+        currentIndex = matchIndex + query.length;
+        matchIndex = lowerOrderNumber.indexOf(lowerQuery, currentIndex);
+    }
+
+    if (currentIndex < orderNumber.length) {
+        parts.push(orderNumber.slice(currentIndex));
+    }
+
+    return parts;
+};
+
 const OrderHistoryScreen = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState('');
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -25,25 +61,38 @@ const OrderHistoryScreen = () => {
         loadOrders();
     }, [loadOrders]));
 
+    const filteredOrders = orders.filter((order) => (
+        String(order.orderNumber || '').toLowerCase().includes(searchText.trim().toLowerCase())
+    ));
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.heading}>ORDER HISTORY</Text>
                 <History size={30} color="#2196F3" />
             </View>
+            <TextInput
+                accessibilityLabel="Search orders by order number"
+                autoCapitalize="none"
+                onChangeText={setSearchText}
+                placeholder="Search by order number"
+                placeholderTextColor="#7A878C"
+                style={styles.searchInput}
+                value={searchText}
+            />
             {loading ? (
                 <ActivityIndicator style={styles.centered} size="large" color="#2196F3" />
             ) : (
                 <FlatList
-                    contentContainerStyle={orders.length === 0 ? styles.emptyState : styles.list}
-                    data={orders}
+                    contentContainerStyle={filteredOrders.length === 0 ? styles.emptyState : styles.list}
+                    data={filteredOrders}
                     keyExtractor={(order) => String(order.documentId || order.id)}
                     ListEmptyComponent={(
                         <>
                             <History size={56} color="#9aa8ae" />
-                            <Text style={styles.emptyTitle}>No orders yet</Text>
+                            <Text style={styles.emptyTitle}>{orders.length === 0 ? 'No orders yet' : 'No matching orders'}</Text>
                             <Text style={styles.emptyText}>
-                                Your completed orders will appear here.
+                                {orders.length === 0 ? 'Your completed orders will appear here.' : 'Try another order number.'}
                             </Text>
                         </>
                     )}
@@ -53,7 +102,9 @@ const OrderHistoryScreen = () => {
                         return (
                             <View style={styles.order}>
                                 <View style={styles.orderHeader}>
-                                    <Text style={styles.orderNumber}>{order.orderNumber || 'Order'}</Text>
+                                    <Text style={styles.orderNumber}>
+                                        Order #: {renderHighlightedOrderNumber(String(order.orderNumber || 'Unavailable'), searchText)}
+                                    </Text>
                                     <Text style={styles.status}>{order.orderStatus}</Text>
                                 </View>
                                 <Text style={styles.date}>{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : ''}</Text>
@@ -85,6 +136,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         padding: 18,
+    },
+    searchInput: {
+        backgroundColor: '#fff',
+        borderColor: '#D5DEE1',
+        borderRadius: 8,
+        borderWidth: 1,
+        color: '#172126',
+        fontSize: 16,
+        marginHorizontal: 16,
+        marginBottom: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 11,
     },
     heading: {
         color: '#172126',
@@ -130,6 +193,10 @@ const styles = StyleSheet.create({
         color: '#172126',
         fontSize: 17,
         fontWeight: '700',
+    },
+    highlightedText: {
+        backgroundColor: '#FFE082',
+        color: '#172126',
     },
     status: {
         color: '#2196F3',

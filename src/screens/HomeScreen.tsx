@@ -12,11 +12,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 // import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { Scroll, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-react-native';
-import { addProductToCart } from '../services/authService';
+import { addProductToCart } from '../services/cartService';
+import { STRAPI_ORIGIN } from '../../config/api';
 import { useDispatch, useSelector } from 'react-redux';
-import { addRecentSearch, clearRecentSearches, setCart } from '../components/redux/action';
-
-const STRAPI_URL = 'http://192.168.86.46:1337';
+import { addRecentSearch, clearRecentSearches, setCart } from '../../components/redux/action';
 
 const normalizeProduct = (product: any) => {
   const normalizedProduct = product?.attributes
@@ -49,7 +48,7 @@ const getProductImageUrl = (product: any) => {
     return undefined;
   }
 
-  return imageUrl.startsWith('http') ? imageUrl : `${STRAPI_URL}${imageUrl}`;
+  return imageUrl.startsWith('http') ? imageUrl : `${STRAPI_ORIGIN}${imageUrl}`;
 };
 
 const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
@@ -116,7 +115,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
       console.log("fetchProducts() started");
 
       const response = await fetch(
-        `${STRAPI_URL}/api/products?populate[0]=category&populate[1]=image&pagination[page]=1&pagination[pageSize]=200`
+        `${STRAPI_ORIGIN}/api/products?populate[0]=category&populate[1]=image&pagination[page]=1&pagination[pageSize]=200`
       );
 
       const data = await response.json();
@@ -134,7 +133,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
   const fetchTopRatedProducts = async () => {
     try {
       const response = await fetch(
-        `${STRAPI_URL}/api/products?sort=rating:desc&populate=image&pagination[pageSize]=5`
+        `${STRAPI_ORIGIN}/api/products?sort=rating:desc&populate=image&pagination[pageSize]=5`
       );
 
       const data = await response.json();
@@ -148,7 +147,7 @@ const FlexDirectionBasics = ({ navigation }: { navigation: any }) => {
   const searchProducts = async (keyword: string) => {
     try {
       const response = await fetch(
-        `${STRAPI_URL}/api/products?filters[title][$containsi]=${encodeURIComponent(keyword)}&populate[0]=category&populate[1]=image&pagination[pageSize]=200`
+        `${STRAPI_ORIGIN}/api/products?filters[title][$containsi]=${encodeURIComponent(keyword)}&populate[0]=category&populate[1]=image&pagination[pageSize]=200`
       );
 
       const data = await response.json();

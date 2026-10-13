@@ -1,6 +1,6 @@
 import { Alert } from 'react-native';
 
-import { showNotification } from '../services/notifications';
+import { showNotification } from '../src/services/notifications';
 
 describe('showNotification', () => {
   it('shows the notification title and message', async () => {

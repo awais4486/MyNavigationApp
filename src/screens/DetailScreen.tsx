@@ -9,11 +9,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Clipboard from '@react-native-clipboard/clipboard';
-import { addProductToCart, getAuthenticatedUser } from '../services/authService';
+import { addProductToCart } from '../services/cartService';
+import { getAuthenticatedUser } from '../services/authService';
+import { STRAPI_API_URL } from '../../config/api';
 
 import { Heart, Minus, Plus } from 'lucide-react-native';
 import { useDispatch } from 'react-redux';
-import { setCart } from '../components/redux/action';
+import { setCart } from '../../components/redux/action';
 import { showNotification } from '../services/notifications';
 
 const DetailScreen = ({ route }: { route: any }) => {
@@ -111,7 +113,7 @@ const DetailScreen = ({ route }: { route: any }) => {
         };
 
       const response = await fetch(
-        `http://192.168.86.46:1337/api/users/${userId}`,
+        `${STRAPI_API_URL}/users/${userId}`,
         {
           method: 'PUT',
           headers: {
@@ -441,5 +443,3 @@ const styles = StyleSheet.create({
   },
 
 });
-
-

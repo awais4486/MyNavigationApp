@@ -1560,7 +1560,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context (5.10.0):
+  - react-native-safe-area-context (5.10.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1571,8 +1571,8 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.10.0)
-    - react-native-safe-area-context/fabric (= 5.10.0)
+    - react-native-safe-area-context/common (= 5.10.1)
+    - react-native-safe-area-context/fabric (= 5.10.1)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1583,7 +1583,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context/common (5.10.0):
+  - react-native-safe-area-context/common (5.10.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1604,7 +1604,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-safe-area-context/fabric (5.10.0):
+  - react-native-safe-area-context/fabric (5.10.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2071,7 +2071,7 @@ PODS:
     - RNNotifee/NotifeeCore (= 9.1.8)
   - RNNotifee/NotifeeCore (9.1.8):
     - React-Core
-  - RNReanimated (4.7.0):
+  - RNReanimated (4.7.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2092,35 +2092,12 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
-    - RNReanimated/apple (= 4.7.0)
-    - RNReanimated/common (= 4.7.0)
-    - RNReanimated/view (= 4.7.0)
+    - RNReanimated/apple (= 4.7.1)
+    - RNReanimated/common (= 4.7.1)
+    - RNReanimated/view (= 4.7.1)
     - RNWorklets
     - Yoga
-  - RNReanimated/apple (4.7.0):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-hermes
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - RNWorklets
-    - Yoga
-  - RNReanimated/common (4.7.0):
+  - RNReanimated/apple (4.7.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2143,7 +2120,30 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNReanimated/view (4.7.0):
+  - RNReanimated/common (4.7.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
+  - RNReanimated/view (4.7.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2770,7 +2770,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: b8bf6f9f7363c42dabacd510f73432248b28078a
   React-mutationobservernativemodule: 654a565d30cc8d2ba4f72212f26660e34364caf4
   react-native-image-picker: adb86d86135d8d31009d027db361445c5a3db863
-  react-native-safe-area-context: 13a155c5c8e6f54e63513cc30db9816762d557c8
+  react-native-safe-area-context: 304fcc55b3ae685eb612e819f826e1eb4d2b1fdf
   react-native-slider: 69b113f11cb1faed17b9af0ee804f71ab5cf9129
   react-native-vector-icons-ionicons: cc4bfc451b5d5c61d3c91e05f5a65c097dd0e5cb
   React-NativeModulesApple: 6f8a4b47b7561c796094a6b03ab570c63fb98548
@@ -2812,7 +2812,7 @@ SPEC CHECKSUMS:
   RNFBApp: 90cf0209fb8f0460ab069a7de857d7ec851c8476
   RNFBMessaging: 37dd861b8600ec2ae9a06ba42ae4285cb707a731
   RNNotifee: 5e3b271e8ea7456a36eec994085543c9adca9168
-  RNReanimated: d0a850728e3471df097b8065fdfad7f822b3e227
+  RNReanimated: 082edddbbd5b69590f51fdc9fa18e5e3a1c84122
   RNScreens: a8c3c44e26c956b1bbf1f8d60c9b1bed800104cd
   RNSVG: 62a6c89ec3d32194bbbbb423388776411f783d17
   RNWorklets: 9d5495521ac6c799f78edbdcc566f6580b68a823
@@ -2824,4 +2824,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 1dc99062f00628417ea75eed4270830e33dfc8d4
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.17.0

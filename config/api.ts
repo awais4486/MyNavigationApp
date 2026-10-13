@@ -1,0 +1,8 @@
+const DEVELOPMENT_STRAPI_ORIGIN = 'http://192.168.86.46:1337';
+const PRODUCTION_STRAPI_ORIGIN = 'https://api.example.com';
+
+export const STRAPI_ORIGIN = __DEV__
+  ? DEVELOPMENT_STRAPI_ORIGIN
+  : PRODUCTION_STRAPI_ORIGIN;
+
+export const STRAPI_API_URL = `${STRAPI_ORIGIN}/api`;
